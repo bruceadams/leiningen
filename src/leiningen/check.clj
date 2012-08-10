@@ -10,7 +10,10 @@
   ([project]
      (let [source-files (map io/file (:source-paths project))
            nses (b/namespaces-on-classpath :classpath source-files)
-           action `(let [failures# (atom 0)]
+           ns-src-map (zipmap '(1 2 3) '(<file> 5 6))
+           action `(let [failures# (atom 0)
+                         something# ~ns-src-map]
+;                     (println something#)
                      (doseq [ns# '~nses]
                        ;; load will add the .clj, so can't use ns/path-for.
                        (let [ns-file# (-> (str ns#)
@@ -20,6 +23,10 @@
                          (try
                            (binding [*warn-on-reflection* true]
                              (load ns-file#))
+                           (catch java.io.FileNotFoundException fnfe#
+                             (swap! failures# inc)
+                             (println (str "File " ; (something# ns#)
+                                           " for namespace " ns# " not found!")))
                            (catch ExceptionInInitializerError e#
                              (swap! failures# inc)
                              (.printStackTrace e#)))))
